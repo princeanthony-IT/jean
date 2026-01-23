@@ -287,11 +287,14 @@ export function useGitOperations({
             })
           }
 
-          // Clear active worktree to switch to session board view
-          const { clearActiveWorktree } = useChatStore.getState()
-          const { selectWorktree } = useProjectsStore.getState()
-          clearActiveWorktree()
-          selectWorktree(null)
+          // Only clear active worktree if it's the one we just merged
+          const { activeWorktreeId: currentActiveId, clearActiveWorktree } =
+            useChatStore.getState()
+          if (currentActiveId === worktreeData.id) {
+            const { selectWorktree } = useProjectsStore.getState()
+            clearActiveWorktree()
+            selectWorktree(null)
+          }
 
           toast.success(
             `Merged successfully! Commit: ${result.commit_hash?.slice(0, 7)}`,
