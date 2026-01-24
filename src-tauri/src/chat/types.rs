@@ -7,6 +7,7 @@ use std::collections::HashMap;
 
 /// Metadata from a compaction event
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct CompactMetadata {
     /// How compaction was triggered
     pub trigger: String, // "manual" or "auto"

@@ -1857,6 +1857,7 @@ pub async fn open_worktree_in_terminal(
     #[cfg(target_os = "linux")]
     {
         // Try common Linux terminal emulators in order of preference
+        let xterm_cmd = format!("cd '{}'; exec bash", worktree_path);
         let terminals = [
             (
                 "gnome-terminal",
@@ -1871,7 +1872,7 @@ pub async fn open_worktree_in_terminal(
                     "-e",
                     "bash",
                     "-c",
-                    &format!("cd '{}'; exec bash", worktree_path),
+                    &xterm_cmd,
                 ],
             ),
         ];
