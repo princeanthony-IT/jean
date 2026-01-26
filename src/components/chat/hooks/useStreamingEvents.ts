@@ -249,18 +249,44 @@ export default function useStreamingEvents({
       clearLastSentMessage(sessionId)
 
       if (hasUnansweredBlockingTool) {
-        // Keep tool calls and content blocks so UI shows question
-        // Clear text content (not blocks) and executing mode
-        // Set waiting state and allow user to send messages (answers)
-        clearStreamingContent(sessionId)
-        clearExecutingMode(sessionId)
-        setWaitingForInput(sessionId, true)
-        removeSendingSession(sessionId)
+        // Check if there are queued messages AND only ExitPlanMode is blocking (not AskUserQuestion)
+        const { messageQueues } = useChatStore.getState()
+        const hasQueuedMessages = (messageQueues[sessionId]?.length ?? 0) > 0
+        const isOnlyExitPlanMode =
+          toolCalls?.every(
+            tc => !isAskUserQuestion(tc) || isQuestionAnswered(sessionId, tc.id)
+          ) &&
+          toolCalls?.some(
+            tc => isExitPlanMode(tc) && !isQuestionAnswered(sessionId, tc.id)
+          )
 
-        // Play waiting sound if not currently viewing this session
-        if (!isCurrentlyViewing) {
-          const waitingSound = (preferences?.waiting_sound ?? 'none') as NotificationSound
-          playNotificationSound(waitingSound)
+        if (hasQueuedMessages && isOnlyExitPlanMode) {
+          // Queued message takes priority over plan approval
+          // Clear tool calls so approval UI doesn't show, let queue processor handle the queued message
+          // Don't set waitingForInput(true) - this allows queue processor to send the queued message
+          clearStreamingContent(sessionId)
+          clearStreamingContentBlocks(sessionId)
+          clearToolCalls(sessionId)
+          clearExecutingMode(sessionId)
+          removeSendingSession(sessionId)
+          console.log(
+            '[useStreamingEvents] ExitPlanMode with queued messages - skipping wait state, queue will process'
+          )
+        } else {
+          // Original behavior: show blocking tool UI and wait for user input
+          // Keep tool calls and content blocks so UI shows question
+          // Clear text content (not blocks) and executing mode
+          // Set waiting state and allow user to send messages (answers)
+          clearStreamingContent(sessionId)
+          clearExecutingMode(sessionId)
+          setWaitingForInput(sessionId, true)
+          removeSendingSession(sessionId)
+
+          // Play waiting sound if not currently viewing this session
+          if (!isCurrentlyViewing) {
+            const waitingSound = (preferences?.waiting_sound ?? 'none') as NotificationSound
+            playNotificationSound(waitingSound)
+          }
         }
       } else {
         // No blocking tools - clear everything and mark for review
