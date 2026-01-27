@@ -448,9 +448,6 @@ export function NewWorktreeModal() {
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       const key = e.key.toLowerCase()
-      const target = e.target as HTMLElement
-      const isInputFocused =
-        target.tagName === 'INPUT' || target.tagName === 'TEXTAREA'
 
       // Tab shortcuts (Cmd+key, works even when input is focused)
       if (e.metaKey || e.ctrlKey) {
