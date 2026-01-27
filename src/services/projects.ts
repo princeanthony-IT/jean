@@ -566,7 +566,7 @@ export function useWorktreeEvents() {
             // Consume the flag before dispatching
             useUIStore.getState().consumeAutoInvestigate(worktree.id)
             window.dispatchEvent(
-              new CustomEvent('magic-command', { detail: { command: 'investigate-issue' } })
+              new CustomEvent('magic-command', { detail: { command: 'investigate' } })
             )
           }, 5000) // 5 second max wait
 
@@ -577,7 +577,7 @@ export function useWorktreeEvents() {
               // Consume the flag before dispatching
               useUIStore.getState().consumeAutoInvestigate(worktree.id)
               window.dispatchEvent(
-                new CustomEvent('magic-command', { detail: { command: 'investigate-issue' } })
+                new CustomEvent('magic-command', { detail: { command: 'investigate' } })
               )
             }
           }
@@ -595,7 +595,7 @@ export function useWorktreeEvents() {
             // Consume the flag before dispatching
             useUIStore.getState().consumeAutoInvestigatePR(worktree.id)
             window.dispatchEvent(
-              new CustomEvent('magic-command', { detail: { command: 'investigate-pr' } })
+              new CustomEvent('magic-command', { detail: { command: 'investigate' } })
             )
           }, 5000) // 5 second max wait
 
@@ -606,7 +606,7 @@ export function useWorktreeEvents() {
               // Consume the flag before dispatching
               useUIStore.getState().consumeAutoInvestigatePR(worktree.id)
               window.dispatchEvent(
-                new CustomEvent('magic-command', { detail: { command: 'investigate-pr' } })
+                new CustomEvent('magic-command', { detail: { command: 'investigate' } })
               )
             }
           }

@@ -9,8 +9,7 @@ interface MagicCommandHandlers {
   handleReview: () => void
   handleMerge: () => void
   handleResolveConflicts: () => void
-  handleInvestigateIssue: () => void
-  handleInvestigatePR: () => void
+  handleInvestigate: () => void
   handleCheckoutPR: () => void
 }
 
@@ -29,8 +28,7 @@ export function useMagicCommands({
   handleReview,
   handleMerge,
   handleResolveConflicts,
-  handleInvestigateIssue,
-  handleInvestigatePR,
+  handleInvestigate,
   handleCheckoutPR,
 }: MagicCommandHandlers): void {
   // Store handlers in ref so event listener always has access to current versions
@@ -43,8 +41,7 @@ export function useMagicCommands({
     handleReview,
     handleMerge,
     handleResolveConflicts,
-    handleInvestigateIssue,
-    handleInvestigatePR,
+    handleInvestigate,
     handleCheckoutPR,
   })
 
@@ -60,8 +57,7 @@ export function useMagicCommands({
       handleReview,
       handleMerge,
       handleResolveConflicts,
-      handleInvestigateIssue,
-      handleInvestigatePR,
+      handleInvestigate,
       handleCheckoutPR,
     }
   })
@@ -95,11 +91,8 @@ export function useMagicCommands({
         case 'resolve-conflicts':
           handlers.handleResolveConflicts()
           break
-        case 'investigate-issue':
-          handlers.handleInvestigateIssue()
-          break
-        case 'investigate-pr':
-          handlers.handleInvestigatePR()
+        case 'investigate':
+          handlers.handleInvestigate()
           break
         case 'checkout-pr':
           handlers.handleCheckoutPR()

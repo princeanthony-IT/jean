@@ -30,8 +30,7 @@ type MagicOption =
   | 'review'
   | 'merge'
   | 'resolve-conflicts'
-  | 'investigate-issue'
-  | 'investigate-pr'
+  | 'investigate'
   | 'checkout-pr'
 
 interface MagicOptionItem {
@@ -68,8 +67,7 @@ const MAGIC_SECTIONS: MagicSection[] = [
       { id: 'review', label: 'Review', icon: Eye, key: 'R' },
       { id: 'merge', label: 'Merge to Base', icon: GitMerge, key: 'M' },
       { id: 'resolve-conflicts', label: 'Resolve Conflicts', icon: GitMerge, key: 'F' },
-      { id: 'investigate-issue', label: 'Investigate Issue', icon: Search, key: 'I' },
-      { id: 'investigate-pr', label: 'Investigate PR', icon: Search, key: 'U' },
+      { id: 'investigate', label: 'Investigate Context', icon: Search, key: 'I' },
       { id: 'checkout-pr', label: 'Checkout PR', icon: GitBranch, key: 'K' },
     ],
   },
@@ -85,8 +83,7 @@ const KEY_TO_OPTION: Record<string, MagicOption> = {
   r: 'review',
   m: 'merge',
   f: 'resolve-conflicts',
-  i: 'investigate-issue',
-  u: 'investigate-pr',
+  i: 'investigate',
   k: 'checkout-pr',
 }
 
