@@ -12,6 +12,7 @@ interface SessionDebugPanelProps {
   worktreeId: string
   worktreePath: string
   sessionId: string
+  onFileClick?: (path: string) => void
 }
 
 /** Format token count for display (e.g., 1234 -> "1.2k", 123456 -> "123k") */
@@ -64,6 +65,7 @@ export function SessionDebugPanel({
   worktreeId,
   worktreePath,
   sessionId,
+  onFileClick,
 }: SessionDebugPanelProps) {
   const { data: debugInfo } = useQuery({
     queryKey: ['session-debug-info', sessionId],
@@ -127,16 +129,41 @@ export function SessionDebugPanel({
         session: <span className="text-foreground">{sessionId}</span>
       </div>
       <div className="text-muted-foreground truncate" title={debugInfo.sessions_file}>
-        sessions file: <span className="text-foreground/70">...{debugInfo.sessions_file.slice(-60)}</span>
+        sessions file:{' '}
+        <span
+          className="text-foreground/70 cursor-pointer hover:underline"
+          onClick={() => onFileClick?.(debugInfo.sessions_file)}
+        >
+          ...{debugInfo.sessions_file.slice(-60)}
+        </span>
       </div>
       <div className="text-muted-foreground truncate" title={debugInfo.runs_dir}>
         runs dir: <span className="text-foreground/70">...{debugInfo.runs_dir.slice(-50)}</span>
       </div>
       <div className="text-muted-foreground truncate" title={debugInfo.manifest_file || undefined}>
-        manifest: <span className="text-foreground/70">
-          {debugInfo.manifest_file ? `...${debugInfo.manifest_file.slice(-55)}` : 'none'}
-        </span>
+        manifest:{' '}
+        {debugInfo.manifest_file ? (
+          <span
+            className="text-foreground/70 cursor-pointer hover:underline"
+            onClick={() => onFileClick?.(debugInfo.manifest_file!)}
+          >
+            ...{debugInfo.manifest_file.slice(-55)}
+          </span>
+        ) : (
+          <span className="text-foreground/70">none</span>
+        )}
       </div>
+      {debugInfo.claude_jsonl_file && (
+        <div className="text-muted-foreground truncate" title={debugInfo.claude_jsonl_file}>
+          claude jsonl:{' '}
+          <span
+            className="text-foreground/70 cursor-pointer hover:underline"
+            onClick={() => onFileClick?.(debugInfo.claude_jsonl_file!)}
+          >
+            ...{debugInfo.claude_jsonl_file.slice(-55)}
+          </span>
+        </div>
+      )}
 
       {/* Total token usage */}
       {(debugInfo.total_usage.input_tokens > 0 || debugInfo.total_usage.output_tokens > 0) && (
@@ -164,7 +191,11 @@ export function SessionDebugPanel({
         ) : (
           <div className="space-y-1 ml-2">
             {debugInfo.run_log_files.map((file) => (
-              <div key={file.run_id} className="flex items-center gap-2">
+              <div
+                key={file.run_id}
+                className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1"
+                onClick={() => onFileClick?.(file.path)}
+              >
                 <FileText className="size-4 text-muted-foreground shrink-0" />
                 <span className={cn('font-medium shrink-0', getStatusColor(file.status))}>
                   {getStatusText(file.status)}

@@ -1757,6 +1757,7 @@ Begin your investigation now.`
                               worktreeId={activeWorktreeId}
                               worktreePath={activeWorktreePath}
                               sessionId={activeSessionId}
+                              onFileClick={setViewingFilePath}
                             />
                           </div>
                         )}
