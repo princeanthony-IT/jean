@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils'
 import { Icons } from './WindowControlIcons'
 import { useCommandContext } from '@/hooks/use-command-context'
 import { executeCommand } from '@/lib/commands'
-import { getCurrentWindow } from '@tauri-apps/api/window'
+import { isNativeApp } from '@/lib/environment'
 
 interface MacOSWindowControlsProps extends HTMLProps<HTMLDivElement> {
   className?: string
@@ -53,7 +53,9 @@ export function MacOSWindowControls({
 
     // Also listen for Tauri window focus events if available
     const setupTauriFocusListener = async () => {
+      if (!isNativeApp()) return null
       try {
+        const { getCurrentWindow } = await import('@tauri-apps/api/window')
         const appWindow = getCurrentWindow()
         const unlistenFocus = await appWindow.onFocusChanged(
           ({ payload: focused }) => {
@@ -93,7 +95,9 @@ export function MacOSWindowControls({
   }
 
   const handleMaximizeOrFullscreen = async () => {
+    if (!isNativeApp()) return
     try {
+      const { getCurrentWindow } = await import('@tauri-apps/api/window')
       const appWindow = getCurrentWindow()
       const isFullscreen = await appWindow.isFullscreen()
 

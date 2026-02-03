@@ -17,9 +17,13 @@ function formatModifiersDisplay(modifiers: {
 }): string {
   const isMac =
     typeof navigator !== 'undefined' && navigator.platform.includes('Mac')
+  const isWeb =
+    typeof window !== 'undefined' && !('__TAURI_INTERNALS__' in window)
+  const useMacCtrl = isMac && isWeb
 
   const parts: string[] = []
-  if (modifiers.meta || modifiers.ctrl) parts.push(isMac ? '⌘' : 'Ctrl')
+  if (modifiers.meta || modifiers.ctrl)
+    parts.push(useMacCtrl ? '⌃' : isMac ? '⌘' : 'Ctrl')
   if (modifiers.shift) parts.push(isMac ? '⇧' : 'Shift')
   if (modifiers.alt) parts.push(isMac ? '⌥' : 'Alt')
 

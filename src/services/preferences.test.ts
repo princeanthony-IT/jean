@@ -7,7 +7,7 @@ import type { AppPreferences } from '@/types/preferences'
 import { FONT_SIZE_DEFAULT, DEFAULT_MAGIC_PROMPTS, DEFAULT_MAGIC_PROMPT_MODELS } from '@/types/preferences'
 import { DEFAULT_KEYBINDINGS } from '@/types/keybindings'
 
-vi.mock('@tauri-apps/api/core', () => ({
+vi.mock('@/lib/transport', () => ({
   invoke: vi.fn(),
 }))
 
@@ -66,7 +66,7 @@ describe('preferences service', () => {
 
   describe('usePreferences', () => {
     it('loads preferences from backend', async () => {
-      const { invoke } = await import('@tauri-apps/api/core')
+      const { invoke } = await import('@/lib/transport')
       const mockPreferences: AppPreferences = {
         theme: 'dark',
         selected_model: 'opus',
@@ -99,6 +99,11 @@ describe('preferences service', () => {
         allow_web_tools_in_plan_mode: true,
         waiting_sound: 'none',
         review_sound: 'none',
+        http_server_enabled: false,
+        http_server_port: 3456,
+        http_server_token: null,
+        http_server_auto_start: false,
+        http_server_localhost_only: true,
       }
       vi.mocked(invoke).mockResolvedValueOnce(mockPreferences)
 
@@ -127,7 +132,7 @@ describe('preferences service', () => {
     })
 
     it('returns defaults on backend error', async () => {
-      const { invoke } = await import('@tauri-apps/api/core')
+      const { invoke } = await import('@/lib/transport')
       vi.mocked(invoke).mockRejectedValueOnce(new Error('File not found'))
 
       const { result } = renderHook(() => usePreferences(), {
@@ -140,7 +145,7 @@ describe('preferences service', () => {
     })
 
     it('migrates old keybindings to new defaults', async () => {
-      const { invoke } = await import('@tauri-apps/api/core')
+      const { invoke } = await import('@/lib/transport')
       const prefsWithOldBinding: AppPreferences = {
         theme: 'dark',
         selected_model: 'opus',
@@ -176,6 +181,11 @@ describe('preferences service', () => {
         allow_web_tools_in_plan_mode: true,
         waiting_sound: 'none',
         review_sound: 'none',
+        http_server_enabled: false,
+        http_server_port: 3456,
+        http_server_token: null,
+        http_server_auto_start: false,
+        http_server_localhost_only: true,
       }
       vi.mocked(invoke).mockResolvedValueOnce(prefsWithOldBinding)
 
@@ -192,7 +202,7 @@ describe('preferences service', () => {
 
   describe('useSavePreferences', () => {
     it('saves preferences to backend', async () => {
-      const { invoke } = await import('@tauri-apps/api/core')
+      const { invoke } = await import('@/lib/transport')
       const { toast } = await import('sonner')
       vi.mocked(invoke).mockResolvedValueOnce(undefined)
 
@@ -228,6 +238,11 @@ describe('preferences service', () => {
         allow_web_tools_in_plan_mode: true,
         waiting_sound: 'none',
         review_sound: 'none',
+        http_server_enabled: false,
+        http_server_port: 3456,
+        http_server_token: null,
+        http_server_auto_start: false,
+        http_server_localhost_only: true,
       }
 
       const { result } = renderHook(() => useSavePreferences(), {
@@ -243,7 +258,7 @@ describe('preferences service', () => {
     })
 
     it('updates cache on success', async () => {
-      const { invoke } = await import('@tauri-apps/api/core')
+      const { invoke } = await import('@/lib/transport')
       vi.mocked(invoke).mockResolvedValueOnce(undefined)
 
       const newPrefs: AppPreferences = {
@@ -278,6 +293,11 @@ describe('preferences service', () => {
         allow_web_tools_in_plan_mode: true,
         waiting_sound: 'none',
         review_sound: 'none',
+        http_server_enabled: false,
+        http_server_port: 3456,
+        http_server_token: null,
+        http_server_auto_start: false,
+        http_server_localhost_only: true,
       }
 
       const { result } = renderHook(() => useSavePreferences(), {
@@ -293,7 +313,7 @@ describe('preferences service', () => {
     })
 
     it('skips persistence when not in Tauri context', async () => {
-      const { invoke } = await import('@tauri-apps/api/core')
+      const { invoke } = await import('@/lib/transport')
       delete (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__
 
       const newPrefs: AppPreferences = {
@@ -328,6 +348,11 @@ describe('preferences service', () => {
         allow_web_tools_in_plan_mode: true,
         waiting_sound: 'none',
         review_sound: 'none',
+        http_server_enabled: false,
+        http_server_port: 3456,
+        http_server_token: null,
+        http_server_auto_start: false,
+        http_server_localhost_only: true,
       }
 
       const { result } = renderHook(() => useSavePreferences(), {
@@ -342,7 +367,7 @@ describe('preferences service', () => {
     })
 
     it('shows error toast on failure', async () => {
-      const { invoke } = await import('@tauri-apps/api/core')
+      const { invoke } = await import('@/lib/transport')
       const { toast } = await import('sonner')
       vi.mocked(invoke).mockRejectedValueOnce(new Error('Save failed'))
 
@@ -378,6 +403,11 @@ describe('preferences service', () => {
         allow_web_tools_in_plan_mode: true,
         waiting_sound: 'none',
         review_sound: 'none',
+        http_server_enabled: false,
+        http_server_port: 3456,
+        http_server_token: null,
+        http_server_auto_start: false,
+        http_server_localhost_only: true,
       }
 
       const { result } = renderHook(() => useSavePreferences(), {

@@ -10,7 +10,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/lib/transport'
 import { toast } from 'sonner'
 import {
   AlertDialog,
@@ -45,6 +45,7 @@ import { getEditorLabel, getTerminalLabel } from '@/types/preferences'
 import { useTerminalStore } from '@/store/terminal-store'
 import { useChatStore } from '@/store/chat-store'
 import type { SessionDigest } from '@/types/chat'
+import { isNativeApp } from '@/lib/environment'
 
 interface WorktreeContextMenuProps {
   worktree: Worktree
@@ -168,22 +169,26 @@ export function WorktreeContextMenu({
     <ContextMenu>
       <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
       <ContextMenuContent className="w-48">
-        <ContextMenuItem onClick={handleOpenTerminalPanel}>
-          <Terminal className="mr-2 h-4 w-4" />
-          Terminal
-        </ContextMenuItem>
+        {isNativeApp() && (
+          <ContextMenuItem onClick={handleOpenTerminalPanel}>
+            <Terminal className="mr-2 h-4 w-4" />
+            Terminal
+          </ContextMenuItem>
+        )}
 
-        {runScript && (
+        {isNativeApp() && runScript && (
           <ContextMenuItem onClick={handleRun}>
             <Play className="mr-2 h-4 w-4" />
             Run
           </ContextMenuItem>
         )}
 
-        <ContextMenuItem onClick={handleOpenJeanConfig}>
-          <FileJson className="mr-2 h-4 w-4" />
-          Edit jean.json
-        </ContextMenuItem>
+        {isNativeApp() && (
+          <ContextMenuItem onClick={handleOpenJeanConfig}>
+            <FileJson className="mr-2 h-4 w-4" />
+            Edit jean.json
+          </ContextMenuItem>
+        )}
 
         {hasMessages && (
           <ContextMenuItem onClick={handleGenerateRecap}>
@@ -192,22 +197,28 @@ export function WorktreeContextMenu({
           </ContextMenuItem>
         )}
 
-        <ContextMenuSeparator />
+        {isNativeApp() && <ContextMenuSeparator />}
 
-        <ContextMenuItem onClick={handleOpenInEditor}>
-          <Code className="mr-2 h-4 w-4" />
-          Open in {getEditorLabel(preferences?.editor)}
-        </ContextMenuItem>
+        {isNativeApp() && (
+          <ContextMenuItem onClick={handleOpenInEditor}>
+            <Code className="mr-2 h-4 w-4" />
+            Open in {getEditorLabel(preferences?.editor)}
+          </ContextMenuItem>
+        )}
 
-        <ContextMenuItem onClick={handleOpenInFinder}>
-          <FolderOpen className="mr-2 h-4 w-4" />
-          Open in Finder
-        </ContextMenuItem>
+        {isNativeApp() && (
+          <ContextMenuItem onClick={handleOpenInFinder}>
+            <FolderOpen className="mr-2 h-4 w-4" />
+            Open in Finder
+          </ContextMenuItem>
+        )}
 
-        <ContextMenuItem onClick={handleOpenInTerminal}>
-          <Terminal className="mr-2 h-4 w-4" />
-          Open in {getTerminalLabel(preferences?.terminal)}
-        </ContextMenuItem>
+        {isNativeApp() && (
+          <ContextMenuItem onClick={handleOpenInTerminal}>
+            <Terminal className="mr-2 h-4 w-4" />
+            Open in {getTerminalLabel(preferences?.terminal)}
+          </ContextMenuItem>
+        )}
 
         <ContextMenuSeparator />
 

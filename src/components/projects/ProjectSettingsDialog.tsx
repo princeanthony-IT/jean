@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Loader2, GitBranch, Check, ChevronsUpDown, ImageIcon, X } from 'lucide-react'
-import { convertFileSrc } from '@tauri-apps/api/core'
+import { convertFileSrc } from '@/lib/transport'
 import {
   Dialog,
   DialogContent,

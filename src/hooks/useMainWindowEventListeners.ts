@@ -1,10 +1,6 @@
 import { useEffect, useRef } from 'react'
-import { listen } from '@tauri-apps/api/event'
-import { getVersion } from '@tauri-apps/api/app'
-import { check } from '@tauri-apps/plugin-updater'
-import { message } from '@tauri-apps/plugin-dialog'
-import { getCurrentWindow } from '@tauri-apps/api/window'
-import { invoke } from '@tauri-apps/api/core'
+import { listen, invoke } from '@/lib/transport'
+import { isNativeApp } from '@/lib/environment'
 import { useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { useUIStore } from '@/store/ui-store'
 import { useProjectsStore } from '@/store/projects-store'
@@ -324,6 +320,9 @@ export function useMainWindowEventListeners() {
       const unlisteners = await Promise.all([
         listen('menu-about', async () => {
           logger.debug('About menu event received')
+          if (!isNativeApp()) return
+          const { getVersion } = await import('@tauri-apps/api/app')
+          const { message } = await import('@tauri-apps/plugin-dialog')
           // Show simple about dialog with dynamic version
           const appVersion = await getVersion()
           await message(
@@ -334,7 +333,9 @@ export function useMainWindowEventListeners() {
 
         listen('menu-check-updates', async () => {
           logger.debug('Check for updates menu event received')
+          if (!isNativeApp()) return
           try {
+            const { check } = await import('@tauri-apps/plugin-updater')
             const update = await check()
             if (update) {
               commandContext.showToast(
@@ -441,6 +442,44 @@ export function useMainWindowEventListeners() {
           })
           // Silent failure - don't show toast to avoid interrupting workflow
         }),
+
+        // Real-time cache sync between native + web clients
+        listen<{ keys: string[] }>('cache:invalidate', event => {
+          const { keys } = event.payload
+          for (const key of keys) {
+            switch (key) {
+              case 'sessions':
+                queryClient.invalidateQueries({
+                  queryKey: chatQueryKeys.all,
+                })
+                break
+              case 'projects':
+                queryClient.invalidateQueries({
+                  queryKey: projectsQueryKeys.all,
+                })
+                break
+              case 'preferences':
+                queryClient.invalidateQueries({
+                  queryKey: ['preferences'],
+                })
+                break
+              case 'ui-state':
+                queryClient.invalidateQueries({
+                  queryKey: ['ui-state'],
+                })
+                break
+              case 'contexts':
+                queryClient.invalidateQueries({
+                  queryKey: ['contexts'],
+                })
+                // Also invalidate saved contexts list
+                queryClient.invalidateQueries({
+                  queryKey: ['saved-contexts'],
+                })
+                break
+            }
+          }
+        }),
       ])
 
       logger.debug(
@@ -477,33 +516,39 @@ export function useMainWindowEventListeners() {
   useEffect(() => {
     // Skip in development mode - only block quit in production
     if (import.meta.env.DEV) return
+    if (!isNativeApp()) return
 
     let unlisten: (() => void) | null = null
 
-    getCurrentWindow()
-      .onCloseRequested(async event => {
-        try {
-          const hasRunning = await Promise.race([
-            invoke<boolean>('has_running_sessions'),
-            new Promise<boolean>((_, reject) =>
-              setTimeout(() => reject(new Error('timeout')), 2000)
-            ),
-          ])
-          if (hasRunning) {
-            event.preventDefault()
-            window.dispatchEvent(new CustomEvent('quit-confirmation-requested'))
+    const setup = async () => {
+      const { getCurrentWindow } = await import('@tauri-apps/api/window')
+      getCurrentWindow()
+        .onCloseRequested(async event => {
+          try {
+            const hasRunning = await Promise.race([
+              invoke<boolean>('has_running_sessions'),
+              new Promise<boolean>((_, reject) =>
+                setTimeout(() => reject(new Error('timeout')), 2000)
+              ),
+            ])
+            if (hasRunning) {
+              event.preventDefault()
+              window.dispatchEvent(new CustomEvent('quit-confirmation-requested'))
+            }
+          } catch (error) {
+            logger.error('Failed to check running sessions', { error })
+            // Allow quit if we can't check (fail open)
           }
-        } catch (error) {
-          logger.error('Failed to check running sessions', { error })
-          // Allow quit if we can't check (fail open)
-        }
-      })
-      .then(fn => {
-        unlisten = fn
-      })
-      .catch(error => {
-        logger.error('Failed to setup close listener', { error })
-      })
+        })
+        .then(fn => {
+          unlisten = fn
+        })
+        .catch(error => {
+          logger.error('Failed to setup close listener', { error })
+        })
+    }
+
+    setup()
 
     return () => {
       unlisten?.()

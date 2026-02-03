@@ -1,12 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/lib/transport'
 import { logger } from '@/lib/logger'
 import { defaultUIState, type UIState } from '@/types/ui-state'
 
-// Check if running in Tauri context (vs plain browser)
-// In Tauri v2, we check for __TAURI_INTERNALS__ which is always injected
-const isTauri = () =>
-  typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
+import { hasBackend } from '@/lib/environment'
+
+const isTauri = hasBackend
 
 // Query keys for UI state
 export const uiStateQueryKeys = {

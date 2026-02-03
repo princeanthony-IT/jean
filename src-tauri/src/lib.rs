@@ -12,6 +12,7 @@ mod background_tasks;
 mod chat;
 mod claude_cli;
 mod gh_cli;
+pub mod http_server;
 mod platform;
 mod projects;
 mod terminal;
@@ -132,6 +133,14 @@ pub struct AppPreferences {
     pub waiting_sound: String, // Sound when session is waiting for input: none, ding, chime, pop, choochoo
     #[serde(default = "default_review_sound")]
     pub review_sound: String, // Sound when session finishes reviewing: none, ding, chime, pop, choochoo
+    #[serde(default)]
+    pub http_server_auto_start: bool, // Auto-start HTTP server on app launch
+    #[serde(default = "default_http_server_port")]
+    pub http_server_port: u16, // HTTP server port (default: 3456)
+    #[serde(default)]
+    pub http_server_token: Option<String>, // Persisted auth token (generated once)
+    #[serde(default)]
+    pub http_server_localhost_only: bool, // Bind to localhost only (more secure)
 }
 
 fn default_auto_branch_naming() -> bool {
@@ -251,6 +260,10 @@ fn default_waiting_sound() -> String {
 
 fn default_review_sound() -> String {
     "none".to_string()
+}
+
+fn default_http_server_port() -> u16 {
+    3456
 }
 
 // =============================================================================
@@ -526,6 +539,10 @@ impl Default for AppPreferences {
             allow_web_tools_in_plan_mode: default_allow_web_tools_in_plan_mode(),
             waiting_sound: default_waiting_sound(),
             review_sound: default_review_sound(),
+            http_server_auto_start: false,
+            http_server_port: default_http_server_port(),
+            http_server_token: None,
+            http_server_localhost_only: true, // Default to localhost-only for security
         }
     }
 }
@@ -952,6 +969,166 @@ async fn cleanup_old_recovery_files(app: AppHandle) -> Result<u32, String> {
     Ok(removed_count)
 }
 
+// =============================================================================
+// HTTP Server Tauri Commands
+// =============================================================================
+
+#[tauri::command]
+async fn start_http_server(
+    app: AppHandle,
+    port: Option<u16>,
+) -> Result<http_server::server::ServerStatus, String> {
+    use std::sync::Arc;
+    use tokio::sync::Mutex;
+
+    let prefs = load_preferences(app.clone()).await?;
+    let actual_port = port.unwrap_or(prefs.http_server_port);
+    let localhost_only = prefs.http_server_localhost_only;
+
+    // Generate or load token
+    let token = match prefs.http_server_token {
+        Some(t) if !t.is_empty() => t,
+        _ => {
+            let new_token = http_server::auth::generate_token();
+            // Persist the token
+            let mut prefs = prefs.clone();
+            prefs.http_server_token = Some(new_token.clone());
+            save_preferences(app.clone(), prefs).await?;
+            new_token
+        }
+    };
+
+    // Check if already running
+    {
+        let handle_state = app.try_state::<Arc<Mutex<Option<http_server::server::HttpServerHandle>>>>();
+        if let Some(state) = handle_state {
+            let handle = state.lock().await;
+            if handle.is_some() {
+                return Err("HTTP server is already running".to_string());
+            }
+        }
+    }
+
+    // Start the server
+    let handle = http_server::server::start_server(app.clone(), actual_port, token, localhost_only).await?;
+    let status = http_server::server::ServerStatus {
+        running: true,
+        url: Some(handle.url.clone()),
+        token: Some(handle.token.clone()),
+        port: Some(handle.port),
+        localhost_only: Some(handle.localhost_only),
+    };
+
+    // Store the handle
+    let handle_state = app.try_state::<Arc<Mutex<Option<http_server::server::HttpServerHandle>>>>();
+    if let Some(state) = handle_state {
+        let mut guard = state.lock().await;
+        *guard = Some(handle);
+    }
+
+    log::info!("HTTP server started: {} (localhost_only: {})", status.url.as_deref().unwrap_or("unknown"), localhost_only);
+    Ok(status)
+}
+
+#[tauri::command]
+async fn stop_http_server(app: AppHandle) -> Result<(), String> {
+    use std::sync::Arc;
+    use tokio::sync::Mutex;
+
+    let handle_state = app.try_state::<Arc<Mutex<Option<http_server::server::HttpServerHandle>>>>();
+    if let Some(state) = handle_state {
+        let mut guard = state.lock().await;
+        if let Some(handle) = guard.take() {
+            let _ = handle.shutdown_tx.send(());
+            log::info!("HTTP server stopped");
+        }
+    }
+
+    Ok(())
+}
+
+/// Start HTTP server with explicit localhost_only override (for headless mode)
+async fn start_http_server_headless(
+    app: AppHandle,
+    port: u16,
+    bind_all_interfaces: bool,
+) -> Result<http_server::server::ServerStatus, String> {
+    use std::sync::Arc;
+    use tokio::sync::Mutex;
+
+    let prefs = load_preferences(app.clone()).await?;
+    // In headless mode with bind_all_interfaces=true, override localhost_only to false
+    let localhost_only = if bind_all_interfaces {
+        false
+    } else {
+        prefs.http_server_localhost_only
+    };
+
+    // Generate or load token
+    let token = match prefs.http_server_token {
+        Some(t) if !t.is_empty() => t,
+        _ => {
+            let new_token = http_server::auth::generate_token();
+            // Persist the token
+            let mut prefs = prefs.clone();
+            prefs.http_server_token = Some(new_token.clone());
+            save_preferences(app.clone(), prefs).await?;
+            new_token
+        }
+    };
+
+    // Check if already running
+    {
+        let handle_state =
+            app.try_state::<Arc<Mutex<Option<http_server::server::HttpServerHandle>>>>();
+        if let Some(state) = handle_state {
+            let handle = state.lock().await;
+            if handle.is_some() {
+                return Err("HTTP server is already running".to_string());
+            }
+        }
+    }
+
+    // Start the server
+    let handle =
+        http_server::server::start_server(app.clone(), port, token, localhost_only).await?;
+    let status = http_server::server::ServerStatus {
+        running: true,
+        url: Some(handle.url.clone()),
+        token: Some(handle.token.clone()),
+        port: Some(handle.port),
+        localhost_only: Some(handle.localhost_only),
+    };
+
+    // Store the handle
+    let handle_state = app.try_state::<Arc<Mutex<Option<http_server::server::HttpServerHandle>>>>();
+    if let Some(state) = handle_state {
+        let mut guard = state.lock().await;
+        *guard = Some(handle);
+    }
+
+    log::info!(
+        "HTTP server started: {} (localhost_only: {})",
+        status.url.as_deref().unwrap_or("unknown"),
+        localhost_only
+    );
+    Ok(status)
+}
+
+#[tauri::command]
+async fn get_http_server_status(app: AppHandle) -> Result<http_server::server::ServerStatus, String> {
+    Ok(http_server::server::get_server_status(app).await)
+}
+
+#[tauri::command]
+async fn regenerate_http_token(app: AppHandle) -> Result<String, String> {
+    let new_token = http_server::auth::generate_token();
+    let mut prefs = load_preferences(app.clone()).await?;
+    prefs.http_server_token = Some(new_token.clone());
+    save_preferences(app.clone(), prefs).await?;
+    Ok(new_token)
+}
+
 #[cfg(target_os = "macos")]
 // Create the native menu system
 fn create_app_menu(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
@@ -1053,6 +1230,10 @@ fn fix_macos_path() {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Parse CLI arguments for headless mode
+    let args: Vec<String> = std::env::args().collect();
+    let headless = args.iter().any(|a| a == "--headless");
+
     // Fix PATH environment for macOS GUI applications
     // GUI apps don't inherit shell PATH - spawns login shell to get PATH from profiles
     #[cfg(target_os = "macos")]
@@ -1099,6 +1280,20 @@ pub fn run() {
         }
     }
 
+    // Build log targets conditionally (skip webview in headless mode)
+    let mut log_targets = vec![
+        tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout),
+    ];
+    if !headless {
+        log_targets.push(tauri_plugin_log::Target::new(
+            tauri_plugin_log::TargetKind::Webview,
+        ));
+    }
+    #[cfg(target_os = "macos")]
+    log_targets.push(tauri_plugin_log::Target::new(
+        tauri_plugin_log::TargetKind::LogDir { file_name: None },
+    ));
+
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
@@ -1114,17 +1309,7 @@ pub fn run() {
                 // Silence noisy external crates
                 .level_for("globset", log::LevelFilter::Warn)
                 .level_for("ignore", log::LevelFilter::Warn)
-                .targets([
-                    // Always log to stdout for development
-                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout),
-                    // Log to webview console for development
-                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Webview),
-                    // Log to system logs on macOS (appears in Console.app)
-                    #[cfg(target_os = "macos")]
-                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir {
-                        file_name: None,
-                    }),
-                ])
+                .targets(log_targets)
                 .build(),
         )
         .plugin(tauri_plugin_fs::init())
@@ -1133,12 +1318,20 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
-        .setup(|app| {
+        .setup(move |app| {
             log::trace!("🚀 Application starting up");
             log::trace!(
                 "App handle initialized for package: {}",
                 app.package_info().name
             );
+
+            // In headless mode, close the window immediately
+            if headless {
+                log::info!("Running in headless mode");
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.close();
+                }
+            }
 
             // Recover any incomplete runs from previous session (crash recovery)
             let app_handle = app.handle().clone();
@@ -1160,8 +1353,9 @@ pub fn run() {
                 }
             }
 
+            // Skip menu creation in headless mode (no window to attach to)
             #[cfg(target_os = "macos")]
-            {
+            if !headless {
                 log::trace!("Creating macOS app menu");
                 if let Err(e) = create_app_menu(app) {
                     log::error!("Failed to create app menu: {e}");
@@ -1170,7 +1364,7 @@ pub fn run() {
             }
 
             #[cfg(target_os = "macos")]
-            {
+            if !headless {
                 // Set up menu event handlers
                 app.on_menu_event(move |app, event| {
                     log::trace!("Menu event received: {:?}", event.id());
@@ -1260,6 +1454,66 @@ pub fn run() {
             task_manager.start();
             app.manage(task_manager);
             log::trace!("Background task manager initialized");
+
+            // Initialize HTTP server infrastructure
+            let (broadcaster, _) = http_server::WsBroadcaster::new();
+            app.manage(broadcaster);
+            app.manage(std::sync::Arc::new(tokio::sync::Mutex::new(
+                None::<http_server::server::HttpServerHandle>,
+            )));
+            log::trace!("HTTP server infrastructure initialized");
+
+            // Start HTTP server (always in headless mode, or if auto-start configured)
+            let app_handle_http = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                match load_preferences(app_handle_http.clone()).await {
+                    Ok(prefs) if headless || prefs.http_server_auto_start => {
+                        let port = prefs.http_server_port;
+                        log::info!("Starting HTTP server on port {port}");
+                        match start_http_server_headless(
+                            app_handle_http,
+                            port,
+                            headless, // In headless mode, bind to 0.0.0.0
+                        )
+                        .await
+                        {
+                            Ok(status) => {
+                                let url = status.url.unwrap_or_default();
+                                let token = status.token.unwrap_or_default();
+                                log::info!("HTTP server started: {url}");
+                                if headless {
+                                    // Print to stdout for scripts/users to capture
+                                    println!("\n╔══════════════════════════════════════════════════════════════╗");
+                                    println!("║  Jean server running in headless mode                        ║");
+                                    println!("╠══════════════════════════════════════════════════════════════╣");
+                                    println!("║  URL: {url:<54} ║");
+                                    println!("║  Token: {token:<52} ║");
+                                    println!("║                                                              ║");
+                                    println!("║  Open in browser: {url}?token={token}");
+                                    println!("╚══════════════════════════════════════════════════════════════╝\n");
+                                }
+                            }
+                            Err(e) => {
+                                log::error!("Failed to start HTTP server: {e}");
+                                if headless {
+                                    eprintln!("Error: Failed to start HTTP server: {e}");
+                                    std::process::exit(1);
+                                }
+                            }
+                        }
+                    }
+                    Ok(_) => {
+                        // Not headless and auto-start not configured
+                    }
+                    Err(e) => {
+                        log::error!("Failed to load preferences: {e}");
+                        if headless {
+                            eprintln!("Error: Failed to load preferences: {e}");
+                            std::process::exit(1);
+                        }
+                    }
+                }
+            });
 
             Ok(())
         })
@@ -1419,6 +1673,8 @@ pub fn run() {
             chat::generate_context_from_session,
             // Chat commands - Session digest (context recall)
             chat::generate_session_digest,
+            // Chat commands - Real-time setting sync
+            chat::broadcast_session_setting,
             // Chat commands - Debug info
             chat::get_session_debug_info,
             // Chat commands - Session resume (detached process recovery)
@@ -1443,22 +1699,36 @@ pub fn run() {
             background_tasks::commands::set_remote_poll_interval,
             background_tasks::commands::get_remote_poll_interval,
             background_tasks::commands::trigger_immediate_remote_poll,
+            // HTTP server commands
+            start_http_server,
+            stop_http_server,
+            get_http_server_status,
+            regenerate_http_token,
         ])
         .build(tauri::generate_context!())
         .expect("error building tauri application")
-        .run(|_app_handle, event| match &event {
+        .run(move |_app_handle, event| match &event {
             tauri::RunEvent::Exit => {
                 eprintln!("[TERMINAL CLEANUP] RunEvent::Exit received");
                 let killed = terminal::cleanup_all_terminals();
                 eprintln!("[TERMINAL CLEANUP] Killed {killed} terminal(s)");
             }
-            tauri::RunEvent::ExitRequested { .. } => {
+            tauri::RunEvent::ExitRequested { api, .. } => {
+                // In headless mode, prevent exit when window closes
+                if headless {
+                    api.prevent_exit();
+                    return;
+                }
                 eprintln!("[TERMINAL CLEANUP] RunEvent::ExitRequested received");
                 let killed = terminal::cleanup_all_terminals();
                 eprintln!("[TERMINAL CLEANUP] Killed {killed} terminal(s) on ExitRequested");
             }
             tauri::RunEvent::WindowEvent { label, event, .. } => {
                 if let tauri::WindowEvent::CloseRequested { .. } = event {
+                    // In headless mode, we already closed the window, don't cleanup terminals
+                    if headless {
+                        return;
+                    }
                     eprintln!("[TERMINAL CLEANUP] Window {label} close requested");
                     let killed = terminal::cleanup_all_terminals();
                     eprintln!("[TERMINAL CLEANUP] Killed {killed} terminal(s) on CloseRequested");

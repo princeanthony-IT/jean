@@ -225,22 +225,29 @@
   * {
     @apply border-border outline-ring/50;
     box-sizing: border-box;
-    cursor: default;
   }
 
   body {
     @apply text-foreground;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+    min-width: 100vw;
+    position: relative;
+  }
+
+  /* Desktop-only styles — applied when body has .native-app class */
+  body.native-app {
     user-select: none;
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
-    overscroll-behavior: none;
-    min-height: 100vh;
-    min-width: 100vw;
     overflow: hidden;
-    position: relative;
+    overscroll-behavior: none;
+  }
+
+  body.native-app * {
+    cursor: default;
   }
 
   svg {

@@ -201,13 +201,18 @@ export const KEYBINDING_DEFINITIONS: KeybindingDefinition[] = [
 export function formatShortcutDisplay(shortcut: ShortcutString): string {
   const isMac =
     typeof navigator !== 'undefined' && navigator.platform.includes('Mac')
+  // On macOS web, Cmd shortcuts are intercepted by the browser.
+  // Ctrl+key already works (both map to "mod"), so show ⌃ instead of ⌘.
+  const isWeb =
+    typeof window !== 'undefined' && !('__TAURI_INTERNALS__' in window)
+  const useMacCtrl = isMac && isWeb
 
   return shortcut
     .split('+')
     .map(part => {
       switch (part) {
         case 'mod':
-          return isMac ? '⌘' : 'Ctrl'
+          return useMacCtrl ? '⌃' : isMac ? '⌘' : 'Ctrl'
         case 'shift':
           return isMac ? '⇧' : 'Shift'
         case 'alt':

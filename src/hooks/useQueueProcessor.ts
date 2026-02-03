@@ -3,6 +3,7 @@ import { useChatStore } from '@/store/chat-store'
 import { useSendMessage } from '@/services/chat'
 import { usePreferences } from '@/services/preferences'
 import { isTauri } from '@/services/projects'
+import { useWsConnectionStatus } from '@/lib/transport'
 import type { QueuedMessage } from '@/types/chat'
 import { logger } from '@/lib/logger'
 
@@ -61,6 +62,8 @@ function buildMessageWithRefs(queuedMsg: QueuedMessage): string {
 export function useQueueProcessor(): void {
   const sendMessage = useSendMessage()
   const { data: preferences } = usePreferences()
+  // Re-run effect when WS connects so queue processing works in web mode
+  const wsConnected = useWsConnectionStatus()
 
   // Track which sessions we're currently processing to prevent race conditions
   const processingRef = useRef<Set<string>>(new Set())
@@ -183,5 +186,6 @@ export function useQueueProcessor(): void {
     waitingForInputSessionIds,
     sendMessage,
     preferences?.parallel_execution_prompt_enabled,
+    wsConnected,
   ])
 }

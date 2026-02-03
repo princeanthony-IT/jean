@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useRef } from 'react'
+import { useMemo, useCallback, useRef, useEffect } from 'react'
 import { TitleBar } from '@/components/titlebar/TitleBar'
 import { DevModeBanner } from './DevModeBanner'
 import { LeftSideBar } from './LeftSideBar'
@@ -38,6 +38,7 @@ import { useWorktree, useProjects, useCreateWorktreeKeybinding, useWorktreeEvent
 import { usePreferences } from '@/services/preferences'
 import { useSessions } from '@/services/chat'
 import { useChatStore } from '@/store/chat-store'
+import { isNativeApp } from '@/lib/environment'
 
 // Left sidebar resize constraints (pixels)
 const MIN_SIDEBAR_WIDTH = 150
@@ -138,6 +139,13 @@ export function MainWindow() {
   // Handle CMD+N keybinding to create new worktree
   useCreateWorktreeKeybinding()
 
+  // Set browser tab title in web mode (native app sets window title via Tauri)
+  useEffect(() => {
+    if (!isNativeApp()) {
+      document.title = windowTitle
+    }
+  }, [windowTitle])
+
   // Handle custom resize for left sidebar (pixel-based)
   // Uses direct DOM manipulation during drag for smooth performance,
   // commits to Zustand only on mouseup
@@ -175,7 +183,7 @@ export function MainWindow() {
   )
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden rounded-xl bg-background">
+    <div className={`flex h-screen w-full flex-col overflow-hidden bg-background ${isNativeApp() ? 'rounded-xl' : ''}`}>
       {/* Dev Mode Banner */}
       <DevModeBanner />
 

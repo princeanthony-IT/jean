@@ -14,6 +14,7 @@ import { executeCommand, useCommandContext } from '@/lib/commands'
 import { PanelLeft, PanelLeftClose, Settings } from 'lucide-react'
 import { usePreferences } from '@/services/preferences'
 import { formatShortcutDisplay, DEFAULT_KEYBINDINGS } from '@/types/keybindings'
+import { isNativeApp } from '@/lib/environment'
 
 interface TitleBarProps {
   className?: string
@@ -29,9 +30,11 @@ export function TitleBar({ className, title = 'Jean' }: TitleBarProps) {
     (preferences?.keybindings?.toggle_left_sidebar ||
       DEFAULT_KEYBINDINGS.toggle_left_sidebar) as string
   )
+  const native = isNativeApp()
+
   return (
     <div
-      data-tauri-drag-region
+      {...(native ? { 'data-tauri-drag-region': true } : {})}
       className={cn(
         'relative flex h-8 w-full shrink-0 items-center justify-between bg-sidebar',
         className
@@ -39,10 +42,10 @@ export function TitleBar({ className, title = 'Jean' }: TitleBarProps) {
     >
       {/* Left side - Window Controls + Left Actions */}
       <div className="flex items-center" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-        {isMacOS && <MacOSWindowControls />}
+        {native && isMacOS && <MacOSWindowControls />}
 
         {/* Left Action Buttons */}
-        <div className={cn('flex items-center gap-1', !isMacOS && 'pl-2')}>
+        <div className={cn('flex items-center gap-1', (!native || !isMacOS) && 'pl-2')}>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -94,7 +97,7 @@ export function TitleBar({ className, title = 'Jean' }: TitleBarProps) {
       </div>
 
       {/* Right side - Windows/Linux window controls */}
-      {!isMacOS && <WindowsWindowControls />}
+      {native && !isMacOS && <WindowsWindowControls />}
     </div>
   )
 }

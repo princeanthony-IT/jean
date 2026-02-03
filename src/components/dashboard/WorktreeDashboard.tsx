@@ -1,6 +1,6 @@
 import { useMemo, useState, useCallback } from 'react'
 import { useQueries } from '@tanstack/react-query'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/lib/transport'
 import {
   Search,
   GitBranch,

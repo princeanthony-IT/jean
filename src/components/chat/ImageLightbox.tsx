@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { convertFileSrc } from '@tauri-apps/api/core'
+import { convertFileSrc } from '@/lib/transport'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 

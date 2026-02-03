@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/lib/transport'
 import { toast } from 'sonner'
 import { logger } from '@/lib/logger'
 import type { AppPreferences } from '@/types/preferences'
@@ -31,10 +31,9 @@ function migrateKeybindings(
   return migrated
 }
 
-// Check if running in Tauri context (vs plain browser)
-// In Tauri v2, we check for __TAURI_INTERNALS__ which is always injected
-const isTauri = () =>
-  typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
+import { hasBackend } from '@/lib/environment'
+
+const isTauri = hasBackend
 
 // Query keys for preferences
 export const preferencesQueryKeys = {

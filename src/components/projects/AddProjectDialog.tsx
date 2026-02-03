@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
-import { open, save } from '@tauri-apps/plugin-dialog'
-import { invoke } from '@tauri-apps/api/core'
 import { toast } from 'sonner'
+import { isNativeApp } from '@/lib/environment'
+import { invoke } from '@/lib/transport'
 import { FolderOpen, FolderPlus } from 'lucide-react'
 import {
   Dialog,
@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useProjectsStore } from '@/store/projects-store'
-import { useAddProject, useInitProject, isTauri } from '@/services/projects'
+import { useAddProject, useInitProject } from '@/services/projects'
 
 export function AddProjectDialog() {
   const { addProjectDialogOpen, addProjectParentFolderId, setAddProjectDialogOpen } = useProjectsStore()
@@ -21,7 +21,7 @@ export function AddProjectDialog() {
   const isPending = addProject.isPending || initProject.isPending
 
   const handleAddExisting = useCallback(async () => {
-    if (!isTauri()) {
+    if (!isNativeApp()) {
       toast.error('Not running in Tauri', {
         description:
           'Run the app with "npm run tauri:dev" to use native features.',
@@ -30,6 +30,7 @@ export function AddProjectDialog() {
     }
 
     try {
+      const { open } = await import('@tauri-apps/plugin-dialog')
       const selected = await open({
         directory: true,
         multiple: false,
@@ -74,7 +75,7 @@ export function AddProjectDialog() {
   }, [addProject, addProjectParentFolderId, setAddProjectDialogOpen])
 
   const handleInitNew = useCallback(async () => {
-    if (!isTauri()) {
+    if (!isNativeApp()) {
       toast.error('Not running in Tauri', {
         description:
           'Run the app with "npm run tauri:dev" to use native features.',
@@ -84,6 +85,7 @@ export function AddProjectDialog() {
 
     try {
       // Use save dialog to let user pick location and name for new project
+      const { save } = await import('@tauri-apps/plugin-dialog')
       const selected = await save({
         title: 'Create new project',
         defaultPath: 'my-project',

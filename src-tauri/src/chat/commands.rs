@@ -21,6 +21,7 @@ use crate::claude_cli::get_cli_binary_path;
 use crate::platform::silent_command;
 use crate::projects::storage::load_projects_data;
 use crate::projects::types::SessionType;
+use crate::http_server::EmitExt;
 
 /// Get current Unix timestamp in seconds
 fn now() -> u64 {
@@ -931,6 +932,14 @@ pub async fn send_chat_message(
         sessions = load_sessions(&app, &worktree_path, &worktree_id)?;
     }
 
+    // Notify all clients that a message is being sent (for real-time sync)
+    if let Err(e) = app.emit_all("chat:sending", &serde_json::json!({
+        "session_id": session_id,
+        "worktree_id": worktree_id,
+    })) {
+        log::error!("Failed to emit chat:sending event: {e}");
+    }
+
     // Find the session
     let session = match sessions.find_session_mut(&session_id) {
         Some(s) => s,
@@ -942,14 +951,14 @@ pub async fn send_chat_message(
             log::error!("{}", error_msg);
 
             // Emit error event so frontend knows what happened
-            use tauri::Emitter;
+            
             let error_event = super::claude::ErrorEvent {
                 session_id: session_id.clone(),
                 worktree_id: worktree_id.clone(),
                 error: "Session not found. Please refresh the page or create a new session."
                     .to_string(),
             };
-            if let Err(e) = app.emit("chat:error", &error_event) {
+            if let Err(e) = app.emit_all("chat:error", &error_event) {
                 log::error!("Failed to emit chat:error event: {e}");
             }
 
@@ -2950,6 +2959,25 @@ pub async fn generate_session_digest(
 
     // Call Claude CLI with JSON schema (non-streaming)
     execute_digest_claude(&app, &prompt, &prefs.session_recap_model)
+}
+
+/// Broadcast a session setting change to all connected clients.
+/// Used for real-time sync of model, thinking level, and execution mode.
+#[tauri::command]
+pub async fn broadcast_session_setting(
+    app: AppHandle,
+    session_id: String,
+    key: String,
+    value: String,
+) -> Result<(), String> {
+    app.emit_all(
+        "session:setting-changed",
+        &serde_json::json!({
+            "session_id": session_id,
+            "key": key,
+            "value": value,
+        }),
+    )
 }
 
 #[cfg(test)]

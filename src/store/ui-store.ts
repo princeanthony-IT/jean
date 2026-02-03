@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 
-export type PreferencePane = 'general' | 'appearance' | 'keybindings' | 'magic-prompts' | 'experimental'
+export type PreferencePane = 'general' | 'appearance' | 'keybindings' | 'magic-prompts' | 'experimental' | 'web-access'
 
 export type OnboardingStartStep = 'claude' | 'gh' | null
 

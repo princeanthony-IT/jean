@@ -2,9 +2,10 @@
 
 use crate::platform::silent_command;
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Emitter};
+use tauri::AppHandle;
 
 use super::config::{ensure_gh_cli_dir, get_gh_cli_binary_path};
+use crate::http_server::EmitExt;
 
 /// GitHub API URL for releases
 const GITHUB_RELEASES_API: &str = "https://api.github.com/repos/cli/cli/releases";
@@ -539,7 +540,7 @@ fn emit_progress(app: &AppHandle, stage: &str, message: &str, percent: u8) {
         percent,
     };
 
-    if let Err(e) = app.emit("gh-cli:install-progress", &progress) {
+    if let Err(e) = app.emit_all("gh-cli:install-progress", &progress) {
         log::warn!("Failed to emit install progress: {}", e);
     }
 }

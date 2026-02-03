@@ -10,8 +10,8 @@
 
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
-import { invoke } from '@tauri-apps/api/core'
-import { listen, type UnlistenFn } from '@tauri-apps/api/event'
+import { invoke } from '@/lib/transport'
+import { listen, type UnlistenFn } from '@/lib/transport'
 import { useTerminalStore } from '@/store/terminal-store'
 import type {
   TerminalOutputEvent,

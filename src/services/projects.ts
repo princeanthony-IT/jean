@@ -1,15 +1,17 @@
 import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { invoke } from '@tauri-apps/api/core'
-import { listen, type UnlistenFn } from '@tauri-apps/api/event'
+import { invoke, useWsConnectionStatus } from '@/lib/transport'
+import { listen, type UnlistenFn } from '@/lib/transport'
 import { toast } from 'sonner'
 import { logger } from '@/lib/logger'
 import { disposeAllWorktreeTerminals } from '@/lib/terminal-instances'
 import type {
   Project,
   Worktree,
+  WorktreeCreatingEvent,
   WorktreeCreatedEvent,
   WorktreeCreateErrorEvent,
+  WorktreeDeletingEvent,
   WorktreeDeletedEvent,
   WorktreeDeleteErrorEvent,
   WorktreeArchivedEvent,
@@ -22,10 +24,11 @@ import { useProjectsStore } from '@/store/projects-store'
 import { useChatStore } from '@/store/chat-store'
 import { useUIStore } from '@/store/ui-store'
 
-// Check if running in Tauri context (vs plain browser)
-// In Tauri v2, we check for __TAURI_INTERNALS__ which is always injected
-export const isTauri = () =>
-  typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
+import { hasBackend } from '@/lib/environment'
+
+// Check if a backend is available (Tauri IPC or WebSocket)
+// Kept as `isTauri` for backward compatibility across the codebase
+export const isTauri = hasBackend
 
 // Query keys for projects
 export const projectsQueryKeys = {
@@ -386,11 +389,13 @@ export function useCreateWorktree() {
       })
 
       // Add pending worktree to both caches immediately:
-      // 1. The worktrees list cache (for sidebar)
+      // 1. The worktrees list cache (for sidebar) - with dedup check
       queryClient.setQueryData<Worktree[]>(
         projectsQueryKeys.worktrees(projectId),
         old => {
           if (!old) return [pendingWorktree]
+          // Skip if already added by worktree:creating event handler
+          if (old.some(w => w.id === pendingWorktree.id)) return old
           return [...old, pendingWorktree]
         }
       )
@@ -473,11 +478,13 @@ export function useCreateWorktreeFromExistingBranch() {
         name: pendingWorktree.name,
       })
 
-      // Add pending worktree to both caches immediately
+      // Add pending worktree to both caches immediately - with dedup check
       queryClient.setQueryData<Worktree[]>(
         projectsQueryKeys.worktrees(projectId),
         old => {
           if (!old) return [pendingWorktree]
+          // Skip if already added by worktree:creating event handler
+          if (old.some(w => w.id === pendingWorktree.id)) return old
           return [...old, pendingWorktree]
         }
       )
@@ -534,6 +541,8 @@ export function useCreateWorktreeKeybinding() {
  */
 export function useWorktreeEvents() {
   const queryClient = useQueryClient()
+  // Re-run effect when WS connects so event listeners register in web mode
+  const wsConnected = useWsConnectionStatus()
 
   useEffect(() => {
     if (!isTauri()) return
@@ -543,6 +552,39 @@ export function useWorktreeEvents() {
     // =========================================================================
     // Creation events
     // =========================================================================
+
+    // Listen for creation starting - add pending worktree immediately
+    unlistenPromises.push(
+      listen<WorktreeCreatingEvent>('worktree:creating', event => {
+        const { id, project_id, name, path, branch } = event.payload
+        logger.info('Worktree creating (background started)', { id, name })
+
+        // Add pending worktree to cache so it appears instantly on all clients
+        queryClient.setQueryData<Worktree[]>(
+          projectsQueryKeys.worktrees(project_id),
+          old => {
+            // Skip if this worktree already exists (e.g. on the originating client)
+            if (old?.some(w => w.id === id)) return old
+            const pending: Worktree = {
+              id,
+              project_id,
+              name,
+              path,
+              branch,
+              created_at: Math.floor(Date.now() / 1000),
+              status: 'pending' as const,
+              session_type: 'worktree' as Worktree['session_type'],
+              order: 0,
+            }
+            return [...(old ?? []), pending]
+          }
+        )
+
+        // Auto-expand the project so the new worktree is visible in sidebar
+        const { expandProject } = useProjectsStore.getState()
+        expandProject(project_id)
+      })
+    )
 
     // Listen for successful creation
     unlistenPromises.push(
@@ -675,6 +717,33 @@ export function useWorktreeEvents() {
     // Deletion events
     // =========================================================================
 
+    // Listen for deletion starting - remove worktree immediately
+    unlistenPromises.push(
+      listen<WorktreeDeletingEvent>('worktree:deleting', event => {
+        const { id, project_id } = event.payload
+        logger.info('Worktree deleting (background started)', { id })
+
+        // Optimistically remove from cache so it disappears instantly on all clients
+        queryClient.setQueryData<Worktree[]>(
+          projectsQueryKeys.worktrees(project_id),
+          old => {
+            if (!old) return []
+            return old.filter(w => w.id !== id)
+          }
+        )
+
+        // Clear chat/selection if this worktree was active
+        const { activeWorktreeId, clearActiveWorktree } = useChatStore.getState()
+        if (activeWorktreeId === id) {
+          clearActiveWorktree()
+        }
+        const { selectedWorktreeId, selectWorktree } = useProjectsStore.getState()
+        if (selectedWorktreeId === id) {
+          selectWorktree(null)
+        }
+      })
+    )
+
     // Listen for successful deletion
     unlistenPromises.push(
       listen<WorktreeDeletedEvent>('worktree:deleted', event => {
@@ -689,6 +758,17 @@ export function useWorktreeEvents() {
             return old.filter(w => w.id !== id)
           }
         )
+
+        // Clear chat/selection if this worktree was active
+        // (handles cases where worktree:deleting wasn't emitted, e.g. close_base_session)
+        const { activeWorktreeId, clearActiveWorktree } = useChatStore.getState()
+        if (activeWorktreeId === id) {
+          clearActiveWorktree()
+        }
+        const { selectedWorktreeId, selectWorktree } = useProjectsStore.getState()
+        if (selectedWorktreeId === id) {
+          selectWorktree(null)
+        }
       })
     )
 
@@ -890,7 +970,7 @@ export function useWorktreeEvents() {
         unlistens.forEach(unlisten => unlisten())
       })
     }
-  }, [queryClient])
+  }, [queryClient, wsConnected])
 }
 
 /**

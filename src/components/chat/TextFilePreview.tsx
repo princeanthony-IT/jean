@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { X, FileText } from 'lucide-react'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/lib/transport'
 import type { PendingTextFile } from '@/types/chat'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'

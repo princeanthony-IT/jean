@@ -21,7 +21,7 @@ import {
 import { useUIStore } from '@/store/ui-store'
 import { useProjectsStore } from '@/store/projects-store'
 import { useWorktree } from '@/services/projects'
-import { openUrl } from '@tauri-apps/plugin-opener'
+import { isNativeApp } from '@/lib/environment'
 import { notify } from '@/lib/notifications'
 import { cn } from '@/lib/utils'
 
@@ -150,7 +150,7 @@ export function MagicModal() {
   const selectedProjectId = useProjectsStore(state => state.selectedProjectId)
 
   const executeAction = useCallback(
-    (option: MagicOption) => {
+    async (option: MagicOption) => {
       // checkout-pr only needs a project selected, not a worktree
       // Handle it directly here since ChatWindow may not be rendered
       if (option === 'checkout-pr') {
@@ -173,7 +173,12 @@ export function MagicModal() {
 
       // If PR already exists, open it in the browser instead of creating a new one
       if (option === 'open-pr' && worktree?.pr_url) {
-        openUrl(worktree.pr_url)
+        if (isNativeApp()) {
+          const { openUrl } = await import('@tauri-apps/plugin-opener')
+          await openUrl(worktree.pr_url)
+        } else {
+          window.open(worktree.pr_url, '_blank')
+        }
         setMagicModalOpen(false)
         return
       }

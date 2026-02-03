@@ -2,11 +2,12 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 
 use once_cell::sync::Lazy;
-use tauri::{AppHandle, Emitter};
+use tauri::AppHandle;
 
 use super::claude::CancelledEvent;
 use super::run_log;
 use super::storage;
+use crate::http_server::EmitExt;
 
 /// Global registry of running Claude process PIDs by session_id
 /// Allows cancellation of in-progress chat requests via SIGKILL
@@ -108,7 +109,7 @@ pub fn cancel_process(
             worktree_id: worktree_id.to_string(),
             undo_send: false, // Process was running, may have partial content
         };
-        if let Err(e) = app.emit("chat:cancelled", &event) {
+        if let Err(e) = app.emit_all("chat:cancelled", &event) {
             log::error!("Failed to emit chat:cancelled event: {e}");
         }
 

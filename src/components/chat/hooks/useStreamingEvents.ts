@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
-import { listen } from '@tauri-apps/api/event'
-import { invoke } from '@tauri-apps/api/core'
+import { listen, useWsConnectionStatus } from '@/lib/transport'
+import { invoke } from '@/lib/transport'
 import { toast } from 'sonner'
 import type { QueryClient } from '@tanstack/react-query'
 import { useChatStore } from '@/store/chat-store'
@@ -42,6 +42,9 @@ interface UseStreamingEventsParams {
 export default function useStreamingEvents({
   queryClient,
 }: UseStreamingEventsParams): void {
+  // Re-run effect when WS connects so listeners are registered in web mode
+  const wsConnected = useWsConnectionStatus()
+
   useEffect(() => {
     if (!isTauri()) return
 
@@ -56,7 +59,21 @@ export default function useStreamingEvents({
       clearToolCalls,
       clearStreamingContentBlocks,
       removeSendingSession,
+      addSendingSession,
     } = useChatStore.getState()
+
+    // Sync sending state across clients (web <-> native)
+    const unlistenSending = listen<{
+      session_id: string
+      worktree_id: string
+    }>('chat:sending', event => {
+      const { session_id } = event.payload
+      addSendingSession(session_id)
+      // Invalidate session query so non-sender loads the user message
+      queryClient.invalidateQueries({
+        queryKey: chatQueryKeys.all,
+      })
+    })
 
     const unlistenChunk = listen<ChunkEvent>('chat:chunk', event => {
       // Log chunks that might contain ExitPlanMode
@@ -642,7 +659,30 @@ export default function useStreamingEvents({
       }
     )
 
+    // Handle session setting changes (model, thinking level, execution mode)
+    // Broadcast by other clients via broadcast_session_setting command
+    const unlistenSettingChanged = listen<{
+      session_id: string
+      key: string
+      value: string
+    }>('session:setting-changed', event => {
+      const { session_id, key, value } = event.payload
+      const store = useChatStore.getState()
+      switch (key) {
+        case 'model':
+          store.setSelectedModel(session_id, value)
+          break
+        case 'thinkingLevel':
+          store.setThinkingLevel(session_id, value as 'off' | 'think' | 'megathink' | 'ultrathink')
+          break
+        case 'executionMode':
+          store.setExecutionMode(session_id, value as 'plan' | 'build' | 'yolo')
+          break
+      }
+    })
+
     return () => {
+      unlistenSending.then(f => f())
       unlistenChunk.then(f => f())
       unlistenToolUse.then(f => f())
       unlistenToolBlock.then(f => f())
@@ -654,6 +694,7 @@ export default function useStreamingEvents({
       unlistenCancelled.then(f => f())
       unlistenCompacting.then(f => f())
       unlistenCompacted.then(f => f())
+      unlistenSettingChanged.then(f => f())
     }
-  }, [queryClient])
+  }, [queryClient, wsConnected])
 }

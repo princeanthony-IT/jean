@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { Wand2, Loader2, X } from 'lucide-react'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/lib/transport'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Markdown } from '@/components/ui/markdown'

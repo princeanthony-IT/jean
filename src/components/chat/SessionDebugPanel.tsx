@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { invoke } from '@tauri-apps/api/core'
-import { writeText } from '@tauri-apps/plugin-clipboard-manager'
+import { invoke } from '@/lib/transport'
+import { isNativeApp } from '@/lib/environment'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Copy, FileText } from 'lucide-react'
@@ -96,7 +96,13 @@ export function SessionDebugPanel({
     ]
 
     try {
-      await writeText(lines.join('\n'))
+      const text = lines.join('\n')
+      if (isNativeApp()) {
+        const { writeText } = await import('@tauri-apps/plugin-clipboard-manager')
+        await writeText(text)
+      } else {
+        await navigator.clipboard.writeText(text)
+      }
       toast.success('Copied to clipboard')
     } catch (error) {
       console.error('Failed to copy:', error)

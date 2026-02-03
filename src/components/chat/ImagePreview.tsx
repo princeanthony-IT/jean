@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { X } from 'lucide-react'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/lib/transport'
 import type { PendingImage } from '@/types/chat'
 import { ImageLightbox } from './ImageLightbox'
 

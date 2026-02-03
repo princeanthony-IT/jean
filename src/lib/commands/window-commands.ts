@@ -1,7 +1,7 @@
 import { X, Minus, Maximize2, Maximize, Minimize2 } from 'lucide-react'
 import type { AppCommand } from './types'
-import { getCurrentWindow } from '@tauri-apps/api/window'
-import { invoke } from '@tauri-apps/api/core'
+import { isNativeApp } from '@/lib/environment'
+import { invoke } from '@/lib/transport'
 
 export const windowCommands: AppCommand[] = [
   {
@@ -13,7 +13,10 @@ export const windowCommands: AppCommand[] = [
     shortcut: 'mod+w',
 
     execute: async context => {
+      if (!isNativeApp()) return
       try {
+        const { getCurrentWindow } = await import('@tauri-apps/api/window')
+
         // In production, check for running sessions before closing.
         // We handle this here (not in onCloseRequested) because
         // Tauri's async onCloseRequested handler can silently fail on Windows.
@@ -54,7 +57,9 @@ export const windowCommands: AppCommand[] = [
     shortcut: 'mod+m',
 
     execute: async context => {
+      if (!isNativeApp()) return
       try {
+        const { getCurrentWindow } = await import('@tauri-apps/api/window')
         const appWindow = getCurrentWindow()
         await appWindow.minimize()
       } catch (error) {
@@ -72,7 +77,9 @@ export const windowCommands: AppCommand[] = [
     group: 'window',
 
     execute: async context => {
+      if (!isNativeApp()) return
       try {
+        const { getCurrentWindow } = await import('@tauri-apps/api/window')
         const appWindow = getCurrentWindow()
         await appWindow.toggleMaximize()
       } catch (error) {
@@ -91,7 +98,9 @@ export const windowCommands: AppCommand[] = [
     shortcut: 'F11',
 
     execute: async context => {
+      if (!isNativeApp()) return
       try {
+        const { getCurrentWindow } = await import('@tauri-apps/api/window')
         const appWindow = getCurrentWindow()
         await appWindow.setFullscreen(true)
       } catch (error) {
@@ -110,7 +119,9 @@ export const windowCommands: AppCommand[] = [
     shortcut: 'Escape',
 
     execute: async context => {
+      if (!isNativeApp()) return
       try {
+        const { getCurrentWindow } = await import('@tauri-apps/api/window')
         const appWindow = getCurrentWindow()
         await appWindow.setFullscreen(false)
       } catch (error) {

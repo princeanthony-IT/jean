@@ -1,6 +1,7 @@
-use tauri::{Emitter, Manager};
+use tauri::Manager;
 
 use super::types::{CompactMetadata, ContentBlock, ThinkingLevel, ToolCall, UsageData};
+use crate::http_server::EmitExt;
 use crate::projects::github_issues::{
     get_github_contexts_dir, get_worktree_issue_refs, get_worktree_pr_refs,
 };
@@ -529,7 +530,7 @@ pub fn execute_claude_detached(
             worktree_id: worktree_id.to_string(),
             error: error_msg.clone(),
         };
-        let _ = app.emit("chat:error", &error_event);
+        let _ = app.emit_all("chat:error", &error_event);
         error_msg
     })?;
 
@@ -542,7 +543,7 @@ pub fn execute_claude_detached(
             worktree_id: worktree_id.to_string(),
             error: error_msg.clone(),
         };
-        let _ = app.emit("chat:error", &error_event);
+        let _ = app.emit_all("chat:error", &error_event);
         return Err(error_msg);
     }
 
@@ -586,7 +587,7 @@ pub fn execute_claude_detached(
     .map_err(|e| {
         let error_msg = format!("Failed to start Claude CLI: {e}");
         log::error!("{error_msg}");
-        let _ = app.emit(
+        let _ = app.emit_all(
             "chat:error",
             &ErrorEvent {
                 session_id: session_id.to_string(),
@@ -744,7 +745,7 @@ pub fn tail_claude_output(
                                                 worktree_id: worktree_id.to_string(),
                                                 content: text.to_string(),
                                             };
-                                            if let Err(e) = app.emit("chat:chunk", &event) {
+                                            if let Err(e) = app.emit_all("chat:chunk", &event) {
                                                 log::error!("Failed to emit chunk: {e}");
                                             }
                                         }
@@ -786,7 +787,7 @@ pub fn tail_claude_output(
                                             input: input.clone(),
                                             parent_tool_use_id: current_parent_tool_use_id.clone(),
                                         };
-                                        if let Err(e) = app.emit("chat:tool_use", &event) {
+                                        if let Err(e) = app.emit_all("chat:tool_use", &event) {
                                             log::error!("Failed to emit tool_use: {e}");
                                         }
 
@@ -796,7 +797,7 @@ pub fn tail_claude_output(
                                             worktree_id: worktree_id.to_string(),
                                             tool_call_id: id.clone(),
                                         };
-                                        if let Err(e) = app.emit("chat:tool_block", &block_event) {
+                                        if let Err(e) = app.emit_all("chat:tool_block", &block_event) {
                                             log::error!("Failed to emit tool_block: {e}");
                                         }
 
@@ -821,7 +822,7 @@ pub fn tail_claude_output(
                                                 session_id: session_id.to_string(),
                                                 worktree_id: worktree_id.to_string(),
                                             };
-                                            if let Err(e) = app.emit("chat:done", &done_event) {
+                                            if let Err(e) = app.emit_all("chat:done", &done_event) {
                                                 log::error!("Failed to emit done event: {e}");
                                             }
 
@@ -849,7 +850,7 @@ pub fn tail_claude_output(
                                                 worktree_id: worktree_id.to_string(),
                                                 content: thinking.to_string(),
                                             };
-                                            if let Err(e) = app.emit("chat:thinking", &event) {
+                                            if let Err(e) = app.emit_all("chat:thinking", &event) {
                                                 log::error!("Failed to emit thinking: {e}");
                                             }
                                         }
@@ -890,7 +891,7 @@ pub fn tail_claude_output(
                                         tool_use_id: tool_id.to_string(),
                                         output: output.to_string(),
                                     };
-                                    if let Err(e) = app.emit("chat:tool_result", &event) {
+                                    if let Err(e) = app.emit_all("chat:tool_result", &event) {
                                         log::error!("Failed to emit tool_result: {e}");
                                     }
                                 }
@@ -986,7 +987,7 @@ pub fn tail_claude_output(
                                     worktree_id: worktree_id.to_string(),
                                     denials: denial_events,
                                 };
-                                if let Err(e) = app.emit("chat:permission_denied", &event) {
+                                if let Err(e) = app.emit_all("chat:permission_denied", &event) {
                                     log::error!("Failed to emit permission_denied: {e}");
                                 }
                             }
@@ -1006,7 +1007,7 @@ pub fn tail_claude_output(
                             session_id: session_id.to_string(),
                             worktree_id: worktree_id.to_string(),
                         };
-                        if let Err(e) = app.emit("chat:compacting", &compacting_event) {
+                        if let Err(e) = app.emit_all("chat:compacting", &compacting_event) {
                             log::error!("Failed to emit compacting: {e}");
                         }
 
@@ -1018,7 +1019,7 @@ pub fn tail_claude_output(
                                     worktree_id: worktree_id.to_string(),
                                     metadata,
                                 };
-                                if let Err(e) = app.emit("chat:compacted", &compacted_event) {
+                                if let Err(e) = app.emit_all("chat:compacted", &compacted_event) {
                                     log::error!("Failed to emit compacted: {e}");
                                 }
                             }
@@ -1089,7 +1090,7 @@ pub fn tail_claude_output(
             session_id: session_id.to_string(),
             worktree_id: worktree_id.to_string(),
         };
-        if let Err(e) = app.emit("chat:done", &done_event) {
+        if let Err(e) = app.emit_all("chat:done", &done_event) {
             log::error!("Failed to emit done event: {e}");
         }
     }

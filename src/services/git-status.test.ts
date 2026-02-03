@@ -21,11 +21,8 @@ import {
 const mockInvoke = vi.fn()
 const mockListen = vi.fn()
 
-vi.mock('@tauri-apps/api/core', () => ({
+vi.mock('@/lib/transport', () => ({
   invoke: (...args: unknown[]) => mockInvoke(...args),
-}))
-
-vi.mock('@tauri-apps/api/event', () => ({
   listen: (...args: unknown[]) => mockListen(...args),
 }))
 

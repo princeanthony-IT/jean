@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { getCurrentWindow } from '@tauri-apps/api/window'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/lib/transport'
 import { toast } from 'sonner'
 import { useChatStore } from '@/store/chat-store'
 import type { SaveImageResponse } from '@/types/chat'
 import { MAX_IMAGE_SIZE } from '../image-constants'
+import { isNativeApp } from '@/lib/environment'
 
 /** Allowed file extensions for dropped images */
 const ALLOWED_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp']
@@ -32,59 +32,74 @@ export function useDragAndDropImages(
   const [isDragging, setIsDragging] = useState(false)
 
   useEffect(() => {
-    if (options?.disabled) return
+    if (options?.disabled || !isNativeApp()) return
 
-    const window = getCurrentWindow()
+    let cancelled = false
+    let unlisten: (() => void) | null = null
 
-    const unlistenPromise = window.onDragDropEvent(event => {
-      if (event.payload.type === 'enter') {
-        // Files entered the window
-        setIsDragging(true)
-      } else if (event.payload.type === 'over') {
-        // Files are hovering - keep drag state active
-        // Note: 'over' event only has position, not paths
-      } else if (event.payload.type === 'drop') {
-        // Files dropped
-        setIsDragging(false)
+    const setup = async () => {
+      const { getCurrentWindow } = await import('@tauri-apps/api/window')
+      const appWindow = getCurrentWindow()
 
-        if (!sessionId) {
-          toast.error('No active session')
-          return
-        }
+      const unlistenFn = await appWindow.onDragDropEvent(event => {
+        if (event.payload.type === 'enter') {
+          // Files entered the window
+          setIsDragging(true)
+        } else if (event.payload.type === 'over') {
+          // Files are hovering - keep drag state active
+          // Note: 'over' event only has position, not paths
+        } else if (event.payload.type === 'drop') {
+          // Files dropped
+          setIsDragging(false)
 
-        const paths = event.payload.paths
-        const imagePaths = paths.filter(path => {
-          const ext = path.split('.').pop()?.toLowerCase() ?? ''
-          return ALLOWED_EXTENSIONS.includes(ext)
-        })
+          if (!sessionId) {
+            toast.error('No active session')
+            return
+          }
 
-        if (imagePaths.length === 0) {
-          toast.error('No image detected', {
-            description: 'Only PNG, JPEG, GIF, WebP files are accepted',
+          const paths = event.payload.paths
+          const imagePaths = paths.filter(path => {
+            const ext = path.split('.').pop()?.toLowerCase() ?? ''
+            return ALLOWED_EXTENSIONS.includes(ext)
           })
-          return
-        }
 
-        // Process each image
-        for (const sourcePath of imagePaths) {
-          processDroppedImage(sourcePath, sessionId)
-        }
+          if (imagePaths.length === 0) {
+            toast.error('No image detected', {
+              description: 'Only PNG, JPEG, GIF, WebP files are accepted',
+            })
+            return
+          }
 
-        // Notify if some files were skipped
-        const skippedCount = paths.length - imagePaths.length
-        if (skippedCount > 0) {
-          toast.warning(`${skippedCount} file(s) skipped`, {
-            description: 'Only images are accepted',
-          })
+          // Process each image
+          for (const sourcePath of imagePaths) {
+            processDroppedImage(sourcePath, sessionId)
+          }
+
+          // Notify if some files were skipped
+          const skippedCount = paths.length - imagePaths.length
+          if (skippedCount > 0) {
+            toast.warning(`${skippedCount} file(s) skipped`, {
+              description: 'Only images are accepted',
+            })
+          }
+        } else if (event.payload.type === 'leave') {
+          // Files left the window
+          setIsDragging(false)
         }
-      } else if (event.payload.type === 'leave') {
-        // Files left the window
-        setIsDragging(false)
+      })
+
+      if (!cancelled) {
+        unlisten = unlistenFn
+      } else {
+        unlistenFn()
       }
-    })
+    }
+
+    setup()
 
     return () => {
-      unlistenPromise.then(unlisten => unlisten())
+      cancelled = true
+      unlisten?.()
     }
   }, [sessionId, options?.disabled])
 

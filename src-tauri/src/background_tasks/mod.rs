@@ -13,11 +13,12 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-use tauri::{AppHandle, Emitter};
+use tauri::AppHandle;
 
 use crate::gh_cli::config::resolve_gh_binary;
 use crate::projects::git_status::{get_branch_status, ActiveWorktreeInfo, GitBranchStatus};
 use crate::projects::pr_status::{get_pr_status, PrStatus};
+use crate::http_server::EmitExt;
 
 pub mod commands;
 
@@ -398,12 +399,12 @@ impl BackgroundTaskManager {
 
 /// Emit a git status event to the frontend
 fn emit_git_status(app: &AppHandle, status: GitBranchStatus) -> Result<(), String> {
-    app.emit("git:status-update", &status)
+    app.emit_all("git:status-update", &status)
         .map_err(|e| format!("Failed to emit git:status-update event: {e}"))
 }
 
 /// Emit a PR status event to the frontend
 fn emit_pr_status(app: &AppHandle, status: PrStatus) -> Result<(), String> {
-    app.emit("pr:status-update", &status)
+    app.emit_all("pr:status-update", &status)
         .map_err(|e| format!("Failed to emit pr:status-update event: {e}"))
 }

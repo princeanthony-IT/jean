@@ -6,8 +6,8 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { invoke } from '@tauri-apps/api/core'
-import { listen } from '@tauri-apps/api/event'
+import { invoke, useWsConnectionStatus } from '@/lib/transport'
+import { listen } from '@/lib/transport'
 import { toast } from 'sonner'
 import { useCallback, useEffect, useState } from 'react'
 import { logger } from '@/lib/logger'
@@ -18,9 +18,9 @@ import type {
   InstallProgress,
 } from '@/types/claude-cli'
 
-// Check if running in Tauri context (vs plain browser)
-const isTauri = () =>
-  typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
+import { hasBackend } from '@/lib/environment'
+
+const isTauri = hasBackend
 
 // Query keys for Claude CLI
 export const claudeCliQueryKeys = {
@@ -169,6 +169,7 @@ export function useInstallClaudeCli() {
  */
 export function useInstallProgress(): [InstallProgress | null, () => void] {
   const [progress, setProgress] = useState<InstallProgress | null>(null)
+  const wsConnected = useWsConnectionStatus()
 
   const resetProgress = useCallback(() => {
     setProgress(null)
@@ -208,7 +209,7 @@ export function useInstallProgress(): [InstallProgress | null, () => void] {
         unlistenFn()
       }
     }
-  }, [])
+  }, [wsConnected])
 
   return [progress, resetProgress]
 }

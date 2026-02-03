@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/lib/transport'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Loader2, ChevronDown } from 'lucide-react'
@@ -47,6 +47,7 @@ import {
 } from '@/types/preferences'
 import { playNotificationSound } from '@/lib/sounds'
 import type { ThinkingLevel } from '@/types/chat'
+import { isNativeApp } from '@/lib/environment'
 import {
   setGitPollInterval,
   setRemotePollInterval,
@@ -300,135 +301,139 @@ export const GeneralPane: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <SettingsSection
-        title="Claude CLI"
-        actions={
-          cliStatus?.installed ? (
-            checkingClaudeAuth || isClaudeAuthLoading ? (
-              <span className="text-sm text-muted-foreground flex items-center gap-2">
-                <Loader2 className="size-3 animate-spin" />
-                Checking...
-              </span>
-            ) : claudeAuth?.authenticated ? (
-              <span className="text-sm text-muted-foreground">Logged in</span>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleClaudeLogin}
-              >
-                Login
-              </Button>
-            )
-          ) : (
-            <span className="text-sm text-muted-foreground">Not installed</span>
-          )
-        }
-      >
-        <div className="space-y-4">
-          <InlineField
-            label={cliStatus?.installed ? 'Version' : 'Status'}
-            description={
-              cliStatus?.installed ? (
-                <button
-                  onClick={() => handleCopyPath(cliStatus.path)}
-                  className="text-left hover:underline cursor-pointer"
-                  title="Click to copy path"
-                >
-                  {claudeStatusDescription}
-                </button>
+      {isNativeApp() && (
+        <SettingsSection
+          title="Claude CLI"
+          actions={
+            cliStatus?.installed ? (
+              checkingClaudeAuth || isClaudeAuthLoading ? (
+                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                  <Loader2 className="size-3 animate-spin" />
+                  Checking...
+                </span>
+              ) : claudeAuth?.authenticated ? (
+                <span className="text-sm text-muted-foreground">Logged in</span>
               ) : (
-                'Required'
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClaudeLogin}
+                >
+                  Login
+                </Button>
               )
-            }
-          >
-            {isCliLoading ? (
-              <Loader2 className="size-4 animate-spin text-muted-foreground" />
-            ) : cliStatus?.installed ? (
-              <Button
-                variant="outline"
-                className="w-40 justify-between"
-                onClick={() => openCliUpdateModal('claude')}
-              >
-                {cliStatus.version ?? 'Installed'}
-                <ChevronDown className="size-3" />
-              </Button>
             ) : (
-              <Button
-                className="w-40"
-                onClick={() => openCliUpdateModal('claude')}
-              >
-                Install
-              </Button>
-            )}
-          </InlineField>
-        </div>
-      </SettingsSection>
+              <span className="text-sm text-muted-foreground">Not installed</span>
+            )
+          }
+        >
+          <div className="space-y-4">
+            <InlineField
+              label={cliStatus?.installed ? 'Version' : 'Status'}
+              description={
+                cliStatus?.installed ? (
+                  <button
+                    onClick={() => handleCopyPath(cliStatus.path)}
+                    className="text-left hover:underline cursor-pointer"
+                    title="Click to copy path"
+                  >
+                    {claudeStatusDescription}
+                  </button>
+                ) : (
+                  'Required'
+                )
+              }
+            >
+              {isCliLoading ? (
+                <Loader2 className="size-4 animate-spin text-muted-foreground" />
+              ) : cliStatus?.installed ? (
+                <Button
+                  variant="outline"
+                  className="w-40 justify-between"
+                  onClick={() => openCliUpdateModal('claude')}
+                >
+                  {cliStatus.version ?? 'Installed'}
+                  <ChevronDown className="size-3" />
+                </Button>
+              ) : (
+                <Button
+                  className="w-40"
+                  onClick={() => openCliUpdateModal('claude')}
+                >
+                  Install
+                </Button>
+              )}
+            </InlineField>
+          </div>
+        </SettingsSection>
+      )}
 
-      <SettingsSection
-        title="GitHub CLI"
-        actions={
-          ghStatus?.installed ? (
-            checkingGhAuth || isGhAuthLoading ? (
-              <span className="text-sm text-muted-foreground flex items-center gap-2">
-                <Loader2 className="size-3 animate-spin" />
-                Checking...
-              </span>
-            ) : ghAuth?.authenticated ? (
-              <span className="text-sm text-muted-foreground">Logged in</span>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleGhLogin}
-              >
-                Login
-              </Button>
-            )
-          ) : (
-            <span className="text-sm text-muted-foreground">Not installed</span>
-          )
-        }
-      >
-        <div className="space-y-4">
-          <InlineField
-            label={ghStatus?.installed ? 'Version' : 'Status'}
-            description={
-              ghStatus?.installed ? (
-                <button
-                  onClick={() => handleCopyPath(ghStatus.path)}
-                  className="text-left hover:underline cursor-pointer"
-                  title="Click to copy path"
-                >
-                  {ghStatusDescription}
-                </button>
+      {isNativeApp() && (
+        <SettingsSection
+          title="GitHub CLI"
+          actions={
+            ghStatus?.installed ? (
+              checkingGhAuth || isGhAuthLoading ? (
+                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                  <Loader2 className="size-3 animate-spin" />
+                  Checking...
+                </span>
+              ) : ghAuth?.authenticated ? (
+                <span className="text-sm text-muted-foreground">Logged in</span>
               ) : (
-                'Optional'
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGhLogin}
+                >
+                  Login
+                </Button>
               )
-            }
-          >
-            {isGhLoading ? (
-              <Loader2 className="size-4 animate-spin text-muted-foreground" />
-            ) : ghStatus?.installed ? (
-              <Button
-                variant="outline"
-                className="w-40 justify-between"
-                onClick={() => openCliUpdateModal('gh')}
-              >
-                {ghStatus.version ?? 'Installed'}
-                <ChevronDown className="size-3" />
-              </Button>
             ) : (
-              <Button
-                className="w-40"
-                onClick={() => openCliUpdateModal('gh')}
-              >
-                Install
-              </Button>
-            )}
-          </InlineField>
-        </div>
-      </SettingsSection>
+              <span className="text-sm text-muted-foreground">Not installed</span>
+            )
+          }
+        >
+          <div className="space-y-4">
+            <InlineField
+              label={ghStatus?.installed ? 'Version' : 'Status'}
+              description={
+                ghStatus?.installed ? (
+                  <button
+                    onClick={() => handleCopyPath(ghStatus.path)}
+                    className="text-left hover:underline cursor-pointer"
+                    title="Click to copy path"
+                  >
+                    {ghStatusDescription}
+                  </button>
+                ) : (
+                  'Optional'
+                )
+              }
+            >
+              {isGhLoading ? (
+                <Loader2 className="size-4 animate-spin text-muted-foreground" />
+              ) : ghStatus?.installed ? (
+                <Button
+                  variant="outline"
+                  className="w-40 justify-between"
+                  onClick={() => openCliUpdateModal('gh')}
+                >
+                  {ghStatus.version ?? 'Installed'}
+                  <ChevronDown className="size-3" />
+                </Button>
+              ) : (
+                <Button
+                  className="w-40"
+                  onClick={() => openCliUpdateModal('gh')}
+                >
+                  Install
+                </Button>
+              )}
+            </InlineField>
+          </div>
+        </SettingsSection>
+      )}
 
       <SettingsSection title="Defaults">
         <div className="space-y-4">
@@ -527,41 +532,45 @@ export const GeneralPane: React.FC = () => {
             />
           </InlineField>
 
-          <InlineField label="Editor" description="App to open worktrees in">
-            <Select
-              value={preferences?.editor ?? 'vscode'}
-              onValueChange={handleEditorChange}
-            >
-              <SelectTrigger className="w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {editorOptions.map(option => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </InlineField>
+          {isNativeApp() && (
+            <InlineField label="Editor" description="App to open worktrees in">
+              <Select
+                value={preferences?.editor ?? 'vscode'}
+                onValueChange={handleEditorChange}
+              >
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {editorOptions.map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </InlineField>
+          )}
 
-          <InlineField label="Terminal" description="App to open terminals in">
-            <Select
-              value={preferences?.terminal ?? 'terminal'}
-              onValueChange={handleTerminalChange}
-            >
-              <SelectTrigger className="w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {terminalOptions.map(option => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </InlineField>
+          {isNativeApp() && (
+            <InlineField label="Terminal" description="App to open terminals in">
+              <Select
+                value={preferences?.terminal ?? 'terminal'}
+                onValueChange={handleTerminalChange}
+              >
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {terminalOptions.map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </InlineField>
+          )}
 
           <InlineField
             label="Git poll interval"
